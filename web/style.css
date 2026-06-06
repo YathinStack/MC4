@@ -1,0 +1,1303 @@
+/* ===================================================================
+   Lyapunov Neural Drone Dashboard — Dark Glassmorphism Theme
+   Three-column: NN Monitor | 3D Viewport | Telemetry
+   =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+    --bg-dark: #060a14;
+    --bg-panel: rgba(10, 18, 32, 0.92);
+    --bg-card: rgba(15, 25, 45, 0.85);
+    --border: rgba(59, 130, 246, 0.15);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --orange: #f97316;
+    --purple: #a855f7;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-dark);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ─── NN Monitor Panel (LEFT) ───────────────────────────────────────── */
+#nn-panel {
+    width: 320px;
+    min-width: 320px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    backdrop-filter: blur(20px);
+}
+
+#nn-panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.nn-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.nn-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.nn-arch {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+}
+
+.nn-decision {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 4px;
+}
+
+.nn-decision.avoiding {
+    color: var(--red);
+}
+
+.nn-decision.adapting {
+    color: var(--yellow);
+}
+
+.nn-decision.tracking {
+    color: var(--accent);
+}
+
+.nn-decision.stabilized {
+    color: var(--green);
+}
+
+.nn-decision.idle {
+    color: var(--text-dim);
+}
+
+.nn-reason {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+.nn-sublabel {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin: 8px 0 4px 0;
+    font-family: var(--font-mono);
+}
+
+/* Neural network layer visualization */
+.nn-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.nn-layer-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nn-layer-name {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    min-width: 55px;
+    text-align: right;
+}
+
+.nn-layer-viz {
+    display: flex;
+    gap: 1px;
+    flex: 1;
+}
+
+.nn-neuron {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0.3;
+    transition: opacity 0.2s, background 0.2s;
+}
+
+/* NN output bars */
+.nn-bars {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 30px;
+}
+
+.nn-bar {
+    flex: 1;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+    min-height: 2px;
+    max-height: 30px;
+    transition: height 0.15s, background 0.15s;
+    position: relative;
+}
+
+.nn-bar.positive {
+    background: var(--green);
+}
+
+.nn-bar.negative {
+    background: var(--red);
+}
+
+/* SGD table */
+.nn-table {
+    width: 100%;
+    font-size: 11px;
+}
+
+.nn-table td {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.nn-table td:first-child {
+    color: var(--text-dim);
+    font-size: 10px;
+}
+
+.nn-table td:last-child {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text);
+}
+
+/* ─── 3D Viewport (CENTER) ──────────────────────────────────────────── */
+#viewport-container {
+    flex: 1;
+    position: relative;
+    background: var(--bg-dark);
+}
+
+#three-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#hud {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge.active {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--green);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.mode-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--accent);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mode-badge.avoiding {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--red);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.mode-badge.adapting {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--yellow);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.mode-badge.tracking {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--accent);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mode-badge.stabilized {
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--green);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* ─── Telemetry Panel (RIGHT) ───────────────────────────────────────── */
+#telemetry-panel {
+    width: 260px;
+    min-width: 260px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    backdrop-filter: blur(20px);
+}
+
+#telemetry-panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.telem-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.card-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.telem-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.telem-row span:first-child {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+.value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-ok {
+    color: var(--green);
+}
+
+.status-danger {
+    color: var(--red);
+}
+
+.status-warn {
+    color: var(--yellow);
+}
+
+/* Motor bars */
+.motor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.motor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.motor span:first-child {
+    color: var(--text-dim);
+    font-size: 10px;
+    min-width: 22px;
+}
+
+.motor-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.motor-bar {
+    height: 100%;
+    width: 33%;
+    background: linear-gradient(90deg, var(--green), var(--yellow));
+    border-radius: 3px;
+    transition: width 0.15s;
+}
+
+.rpm {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Battery */
+.battery-bar-bg {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    margin: 6px 0;
+    overflow: hidden;
+}
+
+.battery-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--accent));
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+/* Charts */
+canvas {
+    width: 100%;
+    border-radius: 4px;
+    margin-top: 6px;
+}
+
+/* Buttons */
+.controls {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+}
+
+.btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.btn-start {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.btn-start:hover:not(:disabled) {
+    border-color: var(--green);
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.btn-stop {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-stop:hover:not(:disabled) {
+    border-color: var(--red);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Explain Decision – standalone prominent button */
+.btn-explain-decision {
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(168, 85, 247, 0.12) 100%) !important;
+    color: #93c5fd !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-explain-decision::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.15), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-explain-decision:hover {
+    border-color: rgba(59, 130, 246, 0.7) !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.28) 0%, rgba(168, 85, 247, 0.2) 100%) !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-explain-decision:hover::before {
+    left: 100%;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 2px;
+}
+
+/* ═══ LIVE MATHEMATICS PANEL ══════════════════════════════════════════ */
+body {
+    flex-wrap: wrap;
+}
+
+.math-panel {
+    width: 100%;
+    background: linear-gradient(180deg, rgba(8, 14, 28, 0.98) 0%, rgba(6, 10, 20, 0.99) 100%);
+    border-top: 2px solid var(--accent);
+    max-height: 65vh;
+    overflow-y: auto;
+    backdrop-filter: blur(24px);
+}
+
+.math-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    background: rgba(8, 14, 28, 0.98);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+}
+
+.math-panel-header h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin: 0;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.math-panel-header h2::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 8px var(--green);
+    }
+
+    50% {
+        opacity: 0.4;
+        box-shadow: 0 0 2px var(--green);
+    }
+}
+
+.math-panel-header span {
+    color: var(--text-dim);
+    font-size: 14px;
+    transition: transform 0.3s;
+}
+
+.math-panel.collapsed .math-panel-body {
+    display: none;
+}
+
+.math-panel.collapsed .math-panel-header span {
+    transform: rotate(-90deg);
+}
+
+/* Tab navigation */
+.math-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 24px;
+    background: rgba(8, 14, 28, 0.96);
+    position: sticky;
+    top: 48px;
+    z-index: 9;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.08);
+}
+
+.math-tab {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.math-tab:hover {
+    background: rgba(59, 130, 246, 0.08);
+    color: var(--text);
+}
+
+.math-tab.active {
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--accent);
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.08);
+}
+
+.math-panel-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 16px;
+    padding: 16px 24px 24px;
+}
+
+.math-section {
+    background: rgba(12, 20, 40, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.12);
+    border-radius: 12px;
+    padding: 18px;
+    overflow: hidden;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.math-section:hover {
+    border-color: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.05);
+}
+
+.math-section.hidden {
+    display: none;
+}
+
+.math-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* ─── Live Equation Display ─── */
+.math-live-eq {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(168, 85, 247, 0.04) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+}
+
+.math-live-eq::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--purple), var(--accent));
+    opacity: 0.4;
+}
+
+.math-live-eq-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: block;
+}
+
+.math-live-eq-content {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.8;
+    word-break: break-all;
+}
+
+.math-live-eq-content .katex {
+    font-size: 1.1em;
+}
+
+.math-live-result {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(59, 130, 246, 0.08);
+}
+
+.math-live-result .katex {
+    font-size: 0.95em;
+}
+
+.math-katex-block {
+    padding: 6px 0 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+
+.math-katex-block .katex {
+    font-size: 1.05em;
+    color: var(--text);
+}
+
+.math-katex-block .katex-display {
+    margin: 4px 0;
+}
+
+.math-katex-block .katex-display>.katex {
+    font-size: 1.15em;
+}
+
+.math-tl-step .math-katex-block:first-of-type {
+    padding-top: 2px;
+}
+
+/* ─── Timeline Steps ─── */
+.math-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    padding-left: 20px;
+}
+
+.math-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.3), rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.1));
+    border-radius: 1px;
+}
+
+.math-tl-step {
+    position: relative;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.math-tl-step:hover {
+    background: rgba(59, 130, 246, 0.04);
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+.math-tl-step::before {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid rgba(6, 10, 20, 1);
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+    z-index: 1;
+}
+
+.math-tl-step.result::before {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    width: 10px;
+    height: 10px;
+    left: -18px;
+    top: 15px;
+}
+
+.math-tl-step.warning::before {
+    background: var(--yellow);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.math-tl-step.danger::before {
+    background: var(--red);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.math-tl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.math-tl-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--purple);
+}
+
+.math-tl-badge {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.math-tl-badge.stable {
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--green);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.math-tl-badge.unstable {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.math-tl-badge.safe {
+    background: rgba(34, 197, 94, 0.12);
+    color: var(--green);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.math-tl-badge.unsafe {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--red);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* ─── Equation with substituted values ─── */
+.math-eq-line {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    padding: 5px 0;
+    line-height: 1.6;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.math-eq-line .katex {
+    font-size: 1em;
+}
+
+.math-eq-symbol {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+.math-eq-desc {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-style: italic;
+    margin: 2px 0 4px;
+    padding-left: 2px;
+}
+
+/* Live-updating numeric value */
+.math-num {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    transition: color 0.3s, background 0.3s, box-shadow 0.3s;
+    display: inline-block;
+}
+
+.math-num.pos {
+    color: var(--green);
+}
+
+.math-num.neg {
+    color: var(--red);
+}
+
+.math-num.neutral {
+    color: var(--text);
+}
+
+.math-num.accent {
+    color: var(--accent);
+}
+
+.math-num.changed {
+    animation: numFlash 0.6s ease-out;
+}
+
+@keyframes numFlash {
+    0% {
+        background: rgba(59, 130, 246, 0.25);
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+    }
+
+    100% {
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: none;
+    }
+}
+
+/* Result box */
+.math-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(59, 130, 246, 0.04) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.15);
+    border-radius: 8px;
+}
+
+.math-result.danger {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, rgba(245, 158, 11, 0.04) 100%);
+    border-color: rgba(239, 68, 68, 0.15);
+}
+
+.math-result-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+}
+
+.math-result-value {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.math-result-value.pos {
+    color: var(--green);
+}
+
+.math-result-value.neg {
+    color: var(--red);
+}
+
+.math-result-value.neutral {
+    color: var(--text);
+}
+
+/* Vector display */
+.math-vec {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin: 4px 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.math-vec .lbl {
+    color: var(--text-dim);
+    margin-right: 6px;
+    font-size: 9px;
+}
+
+.math-vec .v {
+    color: var(--accent);
+}
+
+/* Dynamics table */
+.math-dyn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.math-dyn-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+}
+
+.math-dyn-cell .dyn-label {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+.math-dyn-cell .dyn-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.math-dyn-cell.highlight {
+    background: rgba(59, 130, 246, 0.06);
+    border-color: rgba(59, 130, 246, 0.15);
+}
+
+.math-dyn-cell.highlight .dyn-value {
+    color: var(--accent);
+}
+
+/* Motor thrust mini-bars */
+.math-thrust-bar-bg {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+    width: 100%;
+}
+
+.math-thrust-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 0.2s;
+}
+
+/* Old classes kept for backward compat */
+.math-master-formula {
+    display: none;
+}
+
+.math-step-formula {
+    margin: 4px 0;
+    min-height: 16px;
+}
+
+.math-formula {
+    font-size: 14px;
+    color: var(--text);
+    min-height: 20px;
+}
+
+.math-formula .katex {
+    font-size: 1.05em;
+}
+
+.math-formula-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* ═══ POST-SIMULATION REPORT MODAL ══════════════════════════════════════════ */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(6, 10, 20, 0.85); 
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+}
+
+.modal-content {
+    background: linear-gradient(180deg, rgba(15, 25, 45, 0.95) 0%, rgba(10, 18, 32, 0.98) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    width: 85%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.1);
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+}
+
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    color: var(--text-dim);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: var(--red);
+    text-decoration: none;
+}
+
+.modal-header {
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin: 0 0 4px 0;
+}
+
+.modal-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.report-grid {
+    margin-bottom: 20px;
+}
+
+.report-images {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.report-images img {
+    max-width: 48%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.report-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.report-section {
+    flex: 1;
+    min-width: 300px;
+    background: rgba(12, 20, 40, 0.6);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.report-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--purple);
+    margin-top: 0;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.report-data-block {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+/* Architecture specific styling inside report */
+.report-arch-layer {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.report-arch-layer:last-child {
+    border-bottom: none;
+}
+.report-arch-net {
+    color: var(--green);
+    margin-bottom: 8px;
+    margin-top: 12px;
+    font-weight: bold;
+}
+.report-arch-net:first-child {
+    margin-top: 0;
+}
+
+/* ─── EXPLAIN DECISION MODAL ─── */
+.explain-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(15, 25, 45, 0.6);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    margin-bottom: 20px;
+}
+.explain-action-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+}
+.explain-reason-text {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.4;
+}
+.explain-timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.explain-step {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+.explain-step:hover {
+    background: rgba(59, 130, 246, 0.05);
+}
+.explain-step.success {
+    border-left-color: var(--green);
+}
+.explain-step.warning {
+    border-left-color: var(--yellow);
+}
+.explain-step.danger {
+    border-left-color: var(--red);
+}
+.explain-step-title {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.explain-step-desc {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+}
+.explain-step-math {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #93c5fd;
+}

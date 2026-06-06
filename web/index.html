@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyapunov Neural Drone Control</title>
+    <meta name="description" content="Real-time ML-driven drone control with neural network visualization">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- ========== LEFT: Neural Network Monitor ========== -->
+    <div id="nn-panel">
+        <h2>Neural Network Monitor</h2>
+
+        <!-- Decision -->
+        <div class="nn-section">
+            <div class="nn-label">MODEL DECISION</div>
+            <div id="nn-decision" class="nn-decision">IDLE</div>
+            <div id="nn-reason" class="nn-reason">Waiting for simulation start</div>
+        </div>
+
+        <!-- Controller Network -->
+        <div class="nn-section">
+            <div class="nn-label">CONTROLLER MLP <span class="nn-arch">17→8→16→16→4</span></div>
+            <div id="ctrl-layers" class="nn-layers"></div>
+            <div class="nn-sublabel">Output Δ RPM (vs hover)</div>
+            <div id="ctrl-delta" class="nn-bars"></div>
+        </div>
+
+        <!-- Lyapunov Network -->
+        <div class="nn-section">
+            <div class="nn-label">LYAPUNOV MLP <span class="nn-arch">17→32→16→1</span></div>
+            <div id="lyap-layers" class="nn-layers"></div>
+            <div class="nn-sublabel">V(ξ) = <span id="nn-v-value">0.0000</span></div>
+            <div class="nn-sublabel">R Singular Values</div>
+            <div id="lyap-sv" class="nn-bars"></div>
+        </div>
+
+        <!-- SGD Adaptation -->
+        <div class="nn-section">
+            <div class="nn-label">STABILITY-AWARE SGD</div>
+            <table class="nn-table">
+                <tr>
+                    <td>Learning Rate</td>
+                    <td id="sgd-lr">1e-4</td>
+                </tr>
+                <tr>
+                    <td>Violation</td>
+                    <td id="sgd-violation">0.0000</td>
+                </tr>
+                <tr>
+                    <td>Gradient ‖∇‖</td>
+                    <td id="sgd-grad-norm">0.0000</td>
+                </tr>
+                <tr>
+                    <td>Latency</td>
+                    <td id="sgd-latency">0.0 ms</td>
+                </tr>
+                <tr>
+                    <td>Adaptations</td>
+                    <td id="sgd-adapt-count">0</td>
+                </tr>
+                <tr>
+                    <td>Adapted</td>
+                    <td id="sgd-adapted">No</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Barrier Function -->
+        <div class="nn-section">
+            <div class="nn-label">BARRIER FUNCTION (CBF)</div>
+            <table class="nn-table">
+                <tr>
+                    <td>Active</td>
+                    <td id="cbf-active">No</td>
+                </tr>
+                <tr>
+                    <td>B(ξ) value</td>
+                    <td id="cbf-value">--</td>
+                </tr>
+                <tr>
+                    <td>Safety margin</td>
+                    <td id="cbf-margin">--</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== CENTER: 3D Viewport ========== -->
+    <div id="viewport-container">
+        <canvas id="three-canvas"></canvas>
+        <div id="hud">
+            <span id="status-badge" class="badge">CONNECTING</span>
+            <span id="mode-badge" class="badge mode-badge">IDLE</span>
+        </div>
+    </div>
+
+    <!-- ========== RIGHT: Telemetry Panels ========== -->
+    <div id="telemetry-panel">
+        <h2>Telemetry</h2>
+
+        <!-- Stability -->
+        <div class="telem-card">
+            <div class="card-title">Stability</div>
+            <div class="telem-row">
+                <span>Lyapunov V</span>
+                <span id="lyap-value" class="value">0.0000</span>
+            </div>
+            <div class="telem-row">
+                <span>ROA</span>
+                <span id="roa-remaining" class="value">100%</span>
+            </div>
+            <div class="telem-row">
+                <span>Status</span>
+                <span id="stability-status" class="value status-ok">STABLE</span>
+            </div>
+            <canvas id="chart-lyapunov" width="200" height="50"></canvas>
+        </div>
+
+        <!-- Safety -->
+        <div class="telem-card">
+            <div class="card-title">Safety</div>
+            <div class="telem-row">
+                <span>Obstacle dist</span>
+                <span id="obstacle-dist" class="value">--</span>
+            </div>
+            <div class="telem-row">
+                <span>Barrier B</span>
+                <span id="barrier-value" class="value">--</span>
+            </div>
+            <canvas id="chart-barrier" width="200" height="50"></canvas>
+        </div>
+
+        <!-- Motors -->
+        <div class="telem-card">
+            <div class="card-title">Motors</div>
+            <div class="motor-grid">
+                <div class="motor"><span>M1</span>
+                    <div class="motor-bar-bg">
+                        <div id="motor1-bar" class="motor-bar"></div>
+                    </div><span id="motor1-rpm" class="rpm">3980</span>
+                </div>
+                <div class="motor"><span>M2</span>
+                    <div class="motor-bar-bg">
+                        <div id="motor2-bar" class="motor-bar"></div>
+                    </div><span id="motor2-rpm" class="rpm">3980</span>
+                </div>
+                <div class="motor"><span>M3</span>
+                    <div class="motor-bar-bg">
+                        <div id="motor3-bar" class="motor-bar"></div>
+                    </div><span id="motor3-rpm" class="rpm">3980</span>
+                </div>
+                <div class="motor"><span>M4</span>
+                    <div class="motor-bar-bg">
+                        <div id="motor4-bar" class="motor-bar"></div>
+                    </div><span id="motor4-rpm" class="rpm">3980</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="telem-card">
+            <div class="card-title">Performance</div>
+            <div class="telem-row">
+                <span>Battery</span>
+                <span id="battery-pct" class="value">100%</span>
+            </div>
+            <div class="battery-bar-bg">
+                <div id="battery-bar" class="battery-bar" style="width:100%"></div>
+            </div>
+            <div class="telem-row">
+                <span>Position</span>
+                <span id="position-val" class="value">(5.0, 5.0, 2.0)</span>
+            </div>
+            <div class="telem-row">
+                <span>Velocity</span>
+                <span id="velocity-val" class="value">0.00 m/s</span>
+            </div>
+            <div class="telem-row">
+                <span>Goal dist</span>
+                <span id="goal-dist-val" class="value">0.00 m</span>
+            </div>
+            <div class="telem-row">
+                <span>Adaptations</span>
+                <span id="adapt-count" class="value">0</span>
+            </div>
+            <div class="telem-row">
+                <span>Replans</span>
+                <span id="replan-count" class="value">0</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="telem-card controls" style="flex-wrap: wrap;">
+            <button id="btn-start" class="btn btn-start">▶ Start</button>
+            <button id="btn-stop" class="btn btn-stop" disabled>■ Stop</button>
+            <button id="btn-reset" class="btn btn-reset">&#x21BA; Reset</button>
+            <button id="btn-explain" class="btn btn-explain-decision" style="flex-basis:100%; margin-top:6px;">🧠 Explain Decision</button>
+        </div>
+    </div>
+
+    <!-- ═══ LIVE MATHEMATICS PANEL ═══ -->
+    <div id="math-panel" class="math-panel">
+        <div class="math-panel-header" onclick="toggleMathPanel()">
+            <h2>LIVE MATHEMATICS</h2>
+            <span id="math-toggle">&#x25BC;</span>
+        </div>
+        <div id="math-panel-body" class="math-panel-body">
+
+            <!-- Controller Math -->
+            <div class="math-section" id="math-ctrl-section">
+                <div class="math-section-title">&#x1F916; CONTROLLER MLP &mdash; u = clamp(φ(ξ) − φ(ξ*) + u*, u_min,
+                    u_max)</div>
+                <div id="ctrl-live-eq" class="math-live-eq">
+                    <span class="math-live-eq-label">Live Computation</span>
+                    <div class="math-live-eq-content" id="ctrl-live-formula">Waiting for data...</div>
+                </div>
+                <div id="ctrl-timeline" class="math-timeline"></div>
+            </div>
+
+            <!-- Lyapunov Math -->
+            <div class="math-section" id="math-lyap-section">
+                <div class="math-section-title">&#x1F6E1; LYAPUNOV CERTIFICATE &mdash; V(ξ) = V_nn + V_lin</div>
+                <div id="lyap-live-eq" class="math-live-eq">
+                    <span class="math-live-eq-label">Live Computation</span>
+                    <div class="math-live-eq-content" id="lyap-live-formula">Waiting for data...</div>
+                </div>
+                <div id="lyap-timeline" class="math-timeline"></div>
+            </div>
+
+            <!-- Barrier Math -->
+            <div class="math-section" id="math-barrier-section">
+                <div class="math-section-title">&#x1F6A7; BARRIER FUNCTION &mdash; B(ξ) = ‖p − o‖² − r²_safe</div>
+                <div id="barrier-live-eq" class="math-live-eq">
+                    <span class="math-live-eq-label">Live Computation</span>
+                    <div class="math-live-eq-content" id="barrier-live-formula">No obstacles — barrier inactive</div>
+                </div>
+                <div id="barrier-timeline" class="math-timeline"></div>
+            </div>
+
+            <!-- Dynamics Math -->
+            <div class="math-section" id="math-dyn-section">
+                <div class="math-section-title">&#x2699; DYNAMICS &mdash; ξ_{t+1} = f(ξ_t, u_t)</div>
+                <div id="dyn-live-eq" class="math-live-eq">
+                    <span class="math-live-eq-label">Live Computation</span>
+                    <div class="math-live-eq-content" id="dyn-live-formula">Waiting for data...</div>
+                </div>
+                <div id="dyn-timeline" class="math-timeline"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== POST-SIMULATION REPORT MODAL ========== -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-report-btn">&times;</span>
+            <div class="modal-header">
+                <h2>Simulation Report</h2>
+                <div class="modal-subtitle">Summary of the drone's neural network navigation</div>
+            </div>
+            
+            <div class="report-grid">
+                <!-- Images Area -->
+                <div class="report-images" id="report-images">
+                    <!-- Images injected here by JS -->
+                </div>
+            </div>
+
+            <div class="report-row">
+                <div class="report-section">
+                    <h3>Controller Logic</h3>
+                    <div id="report-ctrl" class="report-data-block"></div>
+                </div>
+                <div class="report-section">
+                    <h3>Lyapunov Stability</h3>
+                    <div id="report-lyap" class="report-data-block"></div>
+                </div>
+                <div class="report-section">
+                    <h3>Barrier Bounds</h3>
+                    <div id="report-barr" class="report-data-block"></div>
+                </div>
+            </div>
+            
+            <div class="report-row" style="margin-top: 16px;">
+                <div class="report-section">
+                    <h3>Neural Networks</h3>
+                    <div id="report-arch" class="report-data-block"></div>
+                </div>
+                <div class="report-section">
+                    <h3>Online Adaptive SGD</h3>
+                    <div id="report-sgd" class="report-data-block"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== DECISION EXPLAINER MODAL ========== -->
+    <div id="explain-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-btn" id="close-explain-btn">&times;</span>
+            <div class="modal-header">
+                <h2>Decision Engine Process</h2>
+                <div class="modal-subtitle">Step-by-step logic of the AI's current navigation state</div>
+            </div>
+            
+            <div class="explain-top">
+                <div class="explain-action-label">CURRENT DECISION</div>
+                <div id="explain-action-badge" class="mode-badge">IDLE</div>
+                <div id="explain-reason" class="explain-reason-text">Waiting for data...</div>
+            </div>
+
+            <div class="explain-timeline-container" id="explain-timeline">
+                <!-- Timeline steps injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

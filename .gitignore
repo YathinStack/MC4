@@ -1,0 +1,37 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Python Cache and Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables and Secrets
+.env
+*.pem
+secrets/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dev-only / Test / Temporary
+tests/
+scripts/
+.pytest_cache/
+.mypy_cache/
+.pyre_configuration
+stubs/
+results/
+training/
+*.csv
+*.txt
+web/reports/
+
+# OS Files
+.DS_Store
+Thumbs.db
