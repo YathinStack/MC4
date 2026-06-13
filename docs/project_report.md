@@ -535,11 +535,11 @@ N = 10 is the switch horizon. This bounds the transient Lyapunov growth during t
 
 ```mermaid
 graph TB
-    A["Phase 1: Quadrotor Dynamics<br/>17D State, WGS84, ISA, Euler Eqn"] --> B["Phase 2: MLP Controller<br/>17→8→16→16→4, Yang24"]
-    B --> C["Phase 2: Lyapunov Certificate<br/>SVD + 1-norm, V>0 ∀ξ≠ξ*"]
-    C --> D["Phase 3: CBF Avoidance<br/>B≥0 → Safe, Gradient Projection"]
-    D --> E["Phase 4: Stability-Aware SGD<br/>IBP Verify + LQR Fallback"]
-    E --> F["Phase 5: NN Observer<br/>IMU/GPS/Lidar/Sonar Fusion"]
-    F --> G["Phase 6: RRT* Replanning<br/>Switched Lyapunov Stability"]
-    G --> H["Phase 7: 3D Web Dashboard<br/>Flask + Three.js + KaTeX"]
+    A["Phase 1: Quadrotor Dynamics\nState dim=17, WGS84, ISA, Euler Eqn"] --> B["Phase 2: MLP Controller\n17-8-16-16-4, Yang24 Equilibrium Sub"]
+    B --> C["Phase 2: Lyapunov Certificate\nSVD param R, two-term V, V(xi-star)=0"]
+    C --> D["Phase 3: CBF Avoidance\nB(xi)>=0 Safe, Gradient Projection"]
+    D --> E["Phase 4: Stability-Aware SGD\nIBP Verify + LQR Fallback"]
+    E --> F["Phase 5: NN Observer\nIMU / GPS / Lidar / Sonar Fusion"]
+    F --> G["Phase 6: RRT-Star Replanning\nSwitched Lyapunov Dwell-Time"]
+    G --> H["Phase 7: 3D Web Dashboard\nFlask + SocketIO + Three.js + KaTeX"]
 ```

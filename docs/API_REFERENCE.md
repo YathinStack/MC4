@@ -10,93 +10,91 @@ All tensors are PyTorch `torch.Tensor`. Batch dimension `B` is always first.
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `forward(ξ, u_cmd)` | ξ:[B,16], u:[B,4] | ξ_next:[B,16] | RPM |
-| `gravity(alt_m)` | alt_m:Tensor | g:Tensor | m/s² |
-| `air_density(alt_m)` | alt_m:Tensor | ρ:Tensor | kg/m³ |
-| `motor_forces_torques(rpm)` | rpm:[B,4] | F_z:[B,1], τ:[B,3] | N, N·m |
-| `motor_power(rpm, rpm_dot)` | rpm:[B,4], rpm_dot:[B,4] | P:[B] | W |
-| `simulate(ξ0, u_fn, steps)` | ξ0:[B,16], callable, int | traj:[T+1,B,16] | — |
+| `forward(ξ, u_cmd)` | ξ:[B,17], u:[B,4] | ξ_next:[B,17] | RPM |
+| `motor_forces_torques(rpm)` | rpm:[B,4] | F_z:[B], τ:[B,3] | N, N·m |
 
 ---
 
 ## `src/mlp_controller.py`
 
-### `MLPController(arch=[16,8,16,16,4])`
+### `MLPController(arch=[17, 8, 16, 16, 4])`
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `forward(ξ)` | ξ:[B,16] | u:[B,4] | RPM ∈ [1000, 12000] |
+| `forward(ξ)` | ξ:[B,17] | u:[B,4] | RPM ∈ [1000, 12000] |
 
 ---
 
 ## `src/lyapunov_network.py`
 
-### `LyapunovNet(arch=[16,32,16,1])`
+### `LyapunovNet(arch=[17, 32, 16, 1])`
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `forward(ξ)` | ξ:[B,16] | V:[B] | dimensionless, ≥ 0 |
-| `decrease_condition(V_curr, V_next)` | V:[B], V:[B] | violation:[B] | ≥ 0 means violated |
+| `forward(ξ)` | ξ:[B,17] | V:[B] | dimensionless, ≥ 0 |
 
 ---
 
 ## `src/barrier_function.py`
 
-### `BarrierFunction(drone_radius=0.2)`
+### `barrier_value(pos, obs_center, obs_radius)` (module-level function)
 
-| Method | Args | Returns | Units |
-|--------|------|---------|-------|
-| `forward(ξ, obstacles)` | ξ:[B,16], list[dict] | B_min:[B] | m², ≥0 = safe |
-| `time_to_collision(ξ, obs)` | ξ:[B,16], dict | TTC:[B] | seconds |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `pos` | Tensor [B,3] | Drone position |
+| `obs_center` | Tensor [3] | Obstacle center |
+| `obs_radius` | float | Obstacle radius |
+| **Returns** | Tensor [B] | B(ξ) = ‖p−o‖² − r_safe²; ≥ 0 = safe |
 
 ### `LyapunovBarrierFusion(controller, lyapunov, dynamics)`
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `forward(ξ, obstacles)` | ξ:[B,16], list[dict] | u:[B,4], B:[B], V:[B] | — |
+| `forward(ξ, obstacles)` | ξ:[B,17], list[dict] | u:[B,4], B:[B], V:[B] | — |
 
 ---
 
 ## `src/stability_sgd.py`
 
-### `StabilityAwareSGD(controller, lyapunov, dynamics)`
+### `StabilityAwareSGD(controller, lyapunov, dynamics, lr=1e-4)`
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `adapt_online(ξ, u_desired)` | ξ:[1,16], u:[1,4] | u, adapted, violation, latency | RPM, bool, float, s |
+| `adapt_online(ξ, u_desired)` | ξ:[1,17], u:[1,4] | u, adapted, violation, latency | RPM, bool, float, s |
 | `get_stats()` | — | dict | — |
 
 ---
 
 ## `src/neural_observer.py`
 
-### `DroneObserver(dynamics)`
+### `NeuralObserver(dynamics)` (was `DroneObserver`)
 
 | Method | Args | Returns | Units |
 |--------|------|---------|-------|
-| `forward(ξ̂, u, y_meas)` | [B,16], [B,4], [B,8] | ξ̂_next:[B,16] | — |
+| `forward(ξ̂, u, y_meas)` | [B,17], [B,4], [B,8] | ξ̂_next:[B,17] | — |
 
-### `SensorSimulator(device)`
+### `SensorSuite(device)` (was `SensorSimulator`)
 
 | Method | Returns | Rate |
 |--------|---------|------|
-| `imu(ξ_true)` | [B,6] (accel+gyro) | 100 Hz |
-| `gps(ξ_true)` | [B,3] (position) | 10 Hz |
-| `lidar_min_range(ξ_true, obs)` | [B,1] (range) | 30 Hz |
-| `sonar(ξ_true)` | [B,1] (altitude) | 50 Hz |
-| `full_observation(ξ_true, obs)` | [B,8] | — |
+| `full_observation(ξ)` | [B,8] (accel+gyro+sonar+lidar) | 100 Hz |
+| `innovation(ξ_hat, y_meas)` | [B,8] | — |
 
 ---
 
 ## `src/rrt_replanner.py`
 
-### `Replanner(dynamics, controller, lyapunov)`
+### `RRTReplanner(workspace_bounds, max_samples, step_size, goal_bias, rewire_radius, timeout_ms)` (was `Replanner`)
 
 | Method | Args | Returns |
 |--------|------|---------|
-| `replan(ξ, goal, obstacles)` | [1,16], [3], list | list[[3]] waypoints |
-| `switch_controller_safely(ξ, ρ_old, ρ_new)` | [1,16], float, float | bool |
-| `get_stats()` | — | dict |
+| `plan(start, goal, obstacles)` | list[float] [3], list[float] [3], list[dict] | (path: list[list[float]], latency_ms: float) |
+
+### `switched_lyapunov_safe(V_curr, rho_old, rho_new, kappa, N)` (module-level function)
+
+| Args | Returns |
+|------|---------|
+| floats | bool — True if safe to switch trajectory |
 
 ---
 

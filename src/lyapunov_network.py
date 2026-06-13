@@ -42,8 +42,8 @@ class LyapunovNet(nn.Module):
         # SVD-parameterised R ensures R is full-rank ⟹ R⊤R is positive definite
         n = cfg.STATE_REPR_DIM
         U_init, _, Vh_init = torch.linalg.svd(torch.randn(n, n))
-        self.register_buffer("U",  U_init)
-        self.register_buffer("Vh", Vh_init)
+        self.register_buffer("U_svd",  U_init)
+        self.register_buffer("Vh_svd", Vh_init)
         self.sigma_raw = nn.Parameter(torch.zeros(n))   # trainable singular values
         self.psi       = nn.Parameter(torch.zeros(n))   # extra positivity term
 
@@ -54,7 +54,7 @@ class LyapunovNet(nn.Module):
     def R(self) -> torch.Tensor:
         """R = U · diag(softplus(σ) + ψ²) · Vhᵀ  — always full rank."""
         sv = F.softplus(self.sigma_raw) + self.psi ** 2
-        return self.U @ torch.diag(sv) @ self.Vh
+        return self.U_svd @ torch.diag(sv) @ self.Vh_svd
 
     def forward(self, xi: torch.Tensor) -> torch.Tensor:
         """
